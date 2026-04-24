@@ -1,0 +1,49 @@
+deployment_name = "vsite-single-node"
+tenant_name     = "my-tenant"
+xc_namespace    = "system"
+
+azure_credential_name      = "azure-ce-credential"
+azure_credential_namespace = "system"
+ssh_public_key             = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCexample"
+
+site_label_namespace = "shared"
+site_label_key       = "vsite-group"
+
+app_domain          = "app.internal.example.com"
+listener_port       = 80
+origin_server_type  = "private_ip"
+origin_server_value = "10.10.1.10"
+origin_port         = 80
+advertise_network   = "SITE_NETWORK_OUTSIDE"
+
+ce_sites = {
+  ce1 = {
+    azure_region        = "eastus"
+    resource_group      = "rg-xc-ce-eastus"
+    availability_zone   = "1"
+    machine_type        = "Standard_D4s_v5"
+    azure_certified_hw  = "azure-byol-voltmesh"
+    performance_mode    = "l7"
+    vnet_name           = "vnet-xc-ce-eastus"
+    vnet_cidr           = "10.100.0.0/16"
+    inside_subnet_cidr  = "10.100.10.0/24"
+    outside_subnet_cidr = "10.100.20.0/24"
+    use_existing_vnet   = false
+    routing_mode        = "f5_orchestrated"
+  }
+
+  ce2 = {
+    azure_region        = "westus2"
+    resource_group      = "rg-xc-ce-westus2"
+    availability_zone   = "1"
+    machine_type        = "Standard_D4s_v5"
+    azure_certified_hw  = "azure-byol-voltmesh"
+    performance_mode    = "l7"
+    vnet_name           = "vnet-xc-ce-westus2"
+    vnet_cidr           = "10.110.0.0/16"
+    inside_subnet_cidr  = "10.110.10.0/24"
+    outside_subnet_cidr = "10.110.20.0/24"
+    use_existing_vnet   = false
+    routing_mode        = "f5_orchestrated"
+  }
+}
