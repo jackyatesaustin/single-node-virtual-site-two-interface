@@ -44,6 +44,10 @@ The helper library supports either bearer-token auth or P12 client-certificate a
     - XC HTTP Load Balancers
 - `examples/applications.json`
   - sample input configuration
+- `examples/external-applications.json`
+  - example focused on externally advertised applications (`SITE_NETWORK_OUTSIDE`)
+- `examples/internal-applications.json`
+  - example focused on internally advertised applications (`SITE_NETWORK_INSIDE`)
 
 ## Configuration file
 
@@ -117,6 +121,16 @@ Run the script with a config file:
 
 ```bash
 bash xc-api/bin/upsert-http-lbs.sh -f xc-api/examples/applications.json
+```
+
+Use a focused example when you want to start from a specific traffic direction:
+
+```bash
+# External applications: advertised on the Virtual Site outside interface (SLO)
+bash xc-api/bin/upsert-http-lbs.sh -f xc-api/examples/external-applications.json
+
+# Internal applications: advertised on the Virtual Site inside interface (SLI)
+bash xc-api/bin/upsert-http-lbs.sh -f xc-api/examples/internal-applications.json
 ```
 
 By default, names are derived from the application key:

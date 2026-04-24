@@ -1,0 +1,33 @@
+{
+  "tenant_name": "my-tenant",
+  "namespace": "system",
+  "virtual_site": {
+    "name": "vsite-single-node-vsite",
+    "namespace": "system"
+  },
+  "defaults": {
+    "origin_server_type": "private_ip",
+    "origin_port": 80,
+    "endpoint_selection": "LOCALPREFERED",
+    "loadbalancer_algorithm": "LB_OVERRIDE"
+  },
+  "applications": {
+    "ext-web": {
+      "domains": [
+        "app.example.com"
+      ],
+      "listener_port": 80,
+      "origin_server_value": "10.10.1.10",
+      "advertise_network": "SITE_NETWORK_OUTSIDE"
+    },
+    "ext-admin": {
+      "domains": [
+        "admin.example.com"
+      ],
+      "listener_port": 8443,
+      "origin_server_value": "10.10.2.20",
+      "origin_port": 8443,
+      "advertise_network": "SITE_NETWORK_OUTSIDE"
+    }
+  }
+}
