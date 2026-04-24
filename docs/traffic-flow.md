@@ -32,9 +32,9 @@ flowchart LR
     ce2slo --> ce2 --> ce2sli
   end
 
-  extOrigin["Public/shared app origin"]
-  dualOrigin["Shared app origin"]
-  intOrigin["Internal app origin"]
+  extOrigin["Private origin: external-facing app"]
+  dualOrigin["Private origin: shared app"]
+  intOrigin["Private origin: internal app"]
 
   extClient --> extDns --> publicLb --> extApp
   extClient --> extDns --> publicLb --> dualApp
@@ -82,6 +82,7 @@ flowchart LR
 
 - This diagram represents request traffic, not Terraform resource creation order.
 - The repository does not deploy the application workloads; it only points each application to a private backend defined in `applications`.
+- External traffic can still target a private/internal application backend; the listener side changes by app, but origin traffic still goes to private backends over `SLI`.
 - The XC Virtual Site is a logical grouping of CE sites selected by label. It is referenced by origin pools and HTTP load balancers, but it is not a separate packet-processing box.
 - Management connectivity over the Secure Mesh public IP is intentionally omitted here because it is not in the application data path.
 - Azure public and internal load balancers are optional resources in this Terraform. When enabled, the public LB creates one rule per external application port and the internal LB creates one rule per internal application port.
