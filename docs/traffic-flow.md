@@ -1,63 +1,29 @@
-# Traffic flow diagram
+# Traffic flow diagrams
 
-This diagram shows the request paths after the Terraform resources have been deployed. Each application gets its own XC HTTP load balancer and origin pool. Internal applications advertise on `SLI`, external applications advertise on `SLO`, and dual-network applications can advertise on both. The XC Virtual Site is shown as a logical grouping of CE sites, not as a separate data-plane hop.
+This page uses smaller diagrams instead of one large diagram so the Virtual Site is not mistaken for a packet-processing hop. Each application gets its own XC HTTP load balancer and origin pool. Internal applications advertise on `SLI`, external applications advertise on `SLO`, and dual-network applications can advertise on both.
+
+## Virtual Site role
+
+- The **XC Virtual Site** is a **logical grouping of labeled CE sites**.
+- Origin pools and HTTP load balancers reference that grouping.
+- The Virtual Site is **not** a separate proxy, appliance, or forwarding hop.
+- Traffic still lands on a selected **CE site**.
+
+## External application example
 
 ```mermaid
 flowchart LR
   extClient["External client"]
   extDns["External DNS"]
-  intClient["Internal client"]
-  intDns["Internal DNS"]
   publicLb["Optional Azure public load balancer<br/>fronts CE SLO IPs"]
-  internalLb["Optional Azure internal load balancer<br/>fronts CE SLI IPs"]
-  extApp["XC HTTP LB: public app<br/>advertise = SITE_NETWORK_OUTSIDE"]
-  dualApp["XC HTTP LB: shared app<br/>advertise = SITE_NETWORK_INSIDE_AND_OUTSIDE"]
-  intApp["XC HTTP LB: internal app<br/>advertise = SITE_NETWORK_INSIDE"]
-  extPool["Origin Pool: public app"]
-  dualPool["Origin Pool: shared app"]
-  intPool["Origin Pool: internal app"]
-  vsite["XC Virtual Site<br/>logical grouping of CE Site 1 + CE Site 2"]
-
-  subgraph site1["Azure CE Site 1"]
-    ce1slo["SLO / outside subnet<br/>external listeners"]
-    ce1["Single-node Azure CE"]
-    ce1sli["SLI / inside subnet<br/>internal listeners and origins"]
-    ce1slo --> ce1 --> ce1sli
-  end
-
-  subgraph site2["Azure CE Site 2"]
-    ce2slo["SLO / outside subnet<br/>external listeners"]
-    ce2["Single-node Azure CE"]
-    ce2sli["SLI / inside subnet<br/>internal listeners and origins"]
-    ce2slo --> ce2 --> ce2sli
-  end
-
+  extApp["XC HTTP LB: external app<br/>advertise = SITE_NETWORK_OUTSIDE"]
+  extPool["Origin Pool: external app<br/>references the Virtual Site"]
+  ceSlo["Selected CE site's SLO<br/>outside listener"]
+  ce["Single-node Azure CE"]
+  ceSli["Selected CE site's SLI<br/>inside interface"]
   extOrigin["Private origin: external-facing app"]
-  dualOrigin["Private origin: shared app"]
-  intOrigin["Private origin: internal app"]
 
-  extClient --> extDns --> publicLb --> extApp
-  extClient --> extDns --> publicLb --> dualApp
-  intClient --> intDns --> internalLb --> intApp
-  intClient --> intDns --> internalLb --> dualApp
-
-  extApp --> extPool
-  dualApp --> dualPool
-  intApp --> intPool
-
-  extPool -. targets selected site in .-> vsite
-  dualPool -. targets selected site in .-> vsite
-  intPool -. targets selected site in .-> vsite
-
-  vsite -. groups .-> ce1
-  vsite -. groups .-> ce2
-
-  ce1sli --> extOrigin
-  ce2sli --> extOrigin
-  ce1sli --> dualOrigin
-  ce2sli --> dualOrigin
-  ce1sli --> intOrigin
-  ce2sli --> intOrigin
+  extClient --> extDns --> publicLb --> extApp --> extPool --> ceSlo --> ce --> ceSli --> extOrigin
 ```
 
 ## External application sequence
@@ -69,6 +35,22 @@ flowchart LR
 5. The Virtual Site acts as a logical selector for the labeled Azure CE sites rather than a separate traffic-processing hop.
 6. The CE forwards the request out its `SLI` inside interface to the application's private origin.
 
+## Internal application example
+
+```mermaid
+flowchart LR
+  intClient["Internal client"]
+  intDns["Internal DNS"]
+  internalLb["Optional Azure internal load balancer<br/>fronts CE SLI IPs"]
+  intApp["XC HTTP LB: internal app<br/>advertise = SITE_NETWORK_INSIDE"]
+  intPool["Origin Pool: internal app<br/>references the Virtual Site"]
+  ceSli["Selected CE site's SLI<br/>inside listener and origin path"]
+  ce["Single-node Azure CE"]
+  intOrigin["Private origin: internal app"]
+
+  intClient --> intDns --> internalLb --> intApp --> intPool --> ceSli --> ce --> intOrigin
+```
+
 ## Internal application sequence
 
 1. An internal client resolves the application's internal DNS record.
@@ -77,6 +59,12 @@ flowchart LR
 4. That application's origin pool targets the shared XC Virtual Site.
 5. The Virtual Site acts as a logical selector for the labeled Azure CE sites rather than a separate traffic-processing hop.
 6. The CE forwards the request to the application's private origin on the inside network.
+
+## Shared application note
+
+- A shared application uses `SITE_NETWORK_INSIDE_AND_OUTSIDE`.
+- Clients can enter through either the external `SLO` path or the internal `SLI` path.
+- The backend is still a **private origin reached over `SLI`**.
 
 ## Notes
 
