@@ -148,6 +148,7 @@ See [`docs/traffic-flow.md`](docs/traffic-flow.md) for the end-to-end request tr
 - external client to public DNS and the CE `SLO` path
 - internal client to internal DNS and the CE `SLI` path
 - application-specific load balancers and origin pools over the shared Virtual Site
+- the Virtual Site shown as a logical grouping of CE sites rather than a traffic-processing hop
 
 ## Azure Load Balancer Behavior
 
