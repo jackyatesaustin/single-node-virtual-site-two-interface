@@ -148,6 +148,7 @@ See [`docs/traffic-flow.md`](docs/traffic-flow.md) for the end-to-end request tr
 - external client to public DNS and the CE `SLO` path
 - internal client to internal DNS and the CE `SLI` path
 - application-specific load balancers and origin pools over the shared Virtual Site
+- `SITE_NETWORK_*` called out as the Virtual Site interface configuration used by each app advertisement
 - the Virtual Site shown as a logical grouping of CE sites rather than a traffic-processing hop
 - app origins shown as private backends reached over `SLI`, even for externally exposed applications
 

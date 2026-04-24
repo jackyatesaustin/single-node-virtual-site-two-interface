@@ -6,6 +6,7 @@ This page uses smaller diagrams instead of one large diagram so the Virtual Site
 
 - The **XC Virtual Site** is a **logical grouping of labeled CE sites**.
 - Origin pools and HTTP load balancers reference that grouping.
+- The `SITE_NETWORK_*` setting is the **Virtual Site interface configuration** used by an application's HTTP load balancer advertisement.
 - The Virtual Site is **not** a separate proxy, appliance, or forwarding hop.
 - Traffic still lands on a selected **CE site**.
 
@@ -16,7 +17,7 @@ flowchart LR
   extClient["External client"]
   extDns["External DNS"]
   publicLb["Optional Azure public load balancer<br/>fronts CE SLO IPs"]
-  extApp["XC HTTP LB: external app<br/>advertise = SITE_NETWORK_OUTSIDE"]
+  extApp["XC HTTP LB: external app<br/>Virtual Site interface config = SITE_NETWORK_OUTSIDE"]
   extPool["Origin Pool: external app<br/>references the Virtual Site"]
   ceSlo["Selected CE site's SLO<br/>outside listener"]
   ce["Single-node Azure CE"]
@@ -42,7 +43,7 @@ flowchart LR
   intClient["Internal client"]
   intDns["Internal DNS"]
   internalLb["Optional Azure internal load balancer<br/>fronts CE SLI IPs"]
-  intApp["XC HTTP LB: internal app<br/>advertise = SITE_NETWORK_INSIDE"]
+  intApp["XC HTTP LB: internal app<br/>Virtual Site interface config = SITE_NETWORK_INSIDE"]
   intPool["Origin Pool: internal app<br/>references the Virtual Site"]
   ceSli["Selected CE site's SLI<br/>inside listener and origin path"]
   ce["Single-node Azure CE"]
@@ -62,7 +63,7 @@ flowchart LR
 
 ## Shared application note
 
-- A shared application uses `SITE_NETWORK_INSIDE_AND_OUTSIDE`.
+- A shared application uses `SITE_NETWORK_INSIDE_AND_OUTSIDE` as the Virtual Site interface configuration for that app's HTTP load balancer.
 - Clients can enter through either the external `SLO` path or the internal `SLI` path.
 - The backend is still a **private origin reached over `SLI`**.
 
