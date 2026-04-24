@@ -119,9 +119,9 @@ variable "origin_port" {
 }
 
 variable "advertise_network" {
-  description = "Where the HTTP load balancer VIP is advertised on the Virtual Site."
+  description = "Where the HTTP load balancer VIP is advertised on the Virtual Site. Defaults to both inside and outside networks so the CE can proxy internal and external client traffic."
   type        = string
-  default     = "SITE_NETWORK_OUTSIDE"
+  default     = "SITE_NETWORK_INSIDE_AND_OUTSIDE"
 
   validation {
     condition = contains(

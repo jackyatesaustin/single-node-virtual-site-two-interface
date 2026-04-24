@@ -9,12 +9,12 @@ ssh_public_key             = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCexample"
 site_label_namespace = "shared"
 site_label_key       = "vsite-group"
 
-app_domain          = "app.internal.example.com"
+app_domain          = "app.example.com"
 listener_port       = 80
 origin_server_type  = "private_ip"
 origin_server_value = "10.10.1.10"
 origin_port         = 80
-advertise_network   = "SITE_NETWORK_OUTSIDE"
+advertise_network   = "SITE_NETWORK_INSIDE_AND_OUTSIDE"
 
 ce_sites = {
   ce1 = {

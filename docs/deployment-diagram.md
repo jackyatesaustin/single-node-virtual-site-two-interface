@@ -9,7 +9,7 @@ flowchart TD
   step3["3. Known label + cloud site labels<br/>tag both CE sites for membership"]
   step4["4. XC Virtual Site<br/>select CE sites by label"]
   step5["5. XC Origin Pool<br/>use inside network reachability"]
-  step6["6. XC HTTP Load Balancer<br/>advertise on SITE_NETWORK_OUTSIDE"]
+  step6["6. XC HTTP Load Balancer<br/>advertise on SITE_NETWORK_INSIDE_AND_OUTSIDE"]
 
   step1 --> step3
   step2 --> step3
@@ -20,10 +20,11 @@ flowchart TD
 
 - **SLO / outside subnet**
   - client-facing side of the CE
-  - used when the HTTP load balancer is advertised on `SITE_NETWORK_OUTSIDE`
+  - used for external client traffic when the HTTP load balancer is advertised on the outside network
 - **SLI / inside subnet**
   - backend-facing side of the CE
   - used by the origin pool to reach the private application
+  - can also serve internal client traffic when the HTTP load balancer is advertised on the inside network
 - **Secure Mesh public IP**
   - used for CE control-plane connectivity to F5 XC
   - this is management connectivity, not the private application path
@@ -32,4 +33,5 @@ flowchart TD
 
 - This is a deployment/object diagram, not the live request path.
 - The application itself is not deployed by this repository; the origin is an external private IP or private DNS name supplied through `origin_server_value`.
+- The default `advertise_network` for this repo is `SITE_NETWORK_INSIDE_AND_OUTSIDE` so a single XC HTTP load balancer can accept both external and internal traffic through the same Virtual Site.
 - DNS for `app_domain` is expected to be managed outside this stack because the load balancer sets `dns_volterra_managed = false`.

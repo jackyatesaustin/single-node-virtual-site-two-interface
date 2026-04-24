@@ -6,7 +6,7 @@ This Terraform repo creates a two-site F5 XC Azure Customer Edge deployment for 
 - `SLI` and `SLO` on each site via `ingress_egress_gw`
 - one XC `Virtual Site` that groups both CE sites
 - one XC `Origin Pool` that targets the Virtual Site over the inside network
-- one XC `HTTP Load Balancer` advertised on the Virtual Site
+- one XC `HTTP Load Balancer` advertised on the Virtual Site for both inside and outside networks
 
 ## Scope
 
@@ -93,7 +93,7 @@ terraform apply
   - `private_name` if the backend is reachable via a site-local DNS name at each member site
 - `advertise_network`
   - where the HTTP LB VIP is advertised on the Virtual Site
-  - defaults to `SITE_NETWORK_OUTSIDE`
+  - defaults to `SITE_NETWORK_INSIDE_AND_OUTSIDE` so the same XC application can proxy both internal and external traffic flows
 
 ## Deployment Flow
 
@@ -103,7 +103,7 @@ terraform apply
 2. Attach a known XC label and site labels to both CE sites.
 3. Build one XC `Virtual Site` that selects the labeled CE sites.
 4. Create one XC `Origin Pool` that reaches the backend over the inside network through the Virtual Site.
-5. Create one XC `HTTP Load Balancer` that advertises on the Virtual Site.
+5. Create one XC `HTTP Load Balancer` that advertises on both the inside and outside networks of the Virtual Site.
 
 ## Diagrams
 
@@ -116,12 +116,12 @@ See [`docs/deployment-diagram.md`](docs/deployment-diagram.md) for the deploymen
 
 See [`docs/traffic-flow.md`](docs/traffic-flow.md) for the end-to-end request traffic flow:
 
-- client to DNS to XC HTTP load balancer
-- load balancer to origin pool and Virtual Site
-- CE `SLI` path to the private origin
+- external client to public DNS and the CE `SLO` path
+- internal client to internal DNS and the CE `SLI` path
+- load balancer to origin pool and Virtual Site for both flows
 
 ## Notes
 
 - The repo uses `volterra_cloud_site_labels` to attach a known label to each Azure VNet Site, then a `volterra_virtual_site` selector groups those sites.
 - The default origin-pool model assumes the same application IP or DNS name exists behind each CE site and is reachable via `SLI`.
-- The HTTP LB is configured as an HTTP listener. If you want HTTPS or certificate automation, extend `modules/f5_http_lb/main.tf`.
+- The HTTP LB is configured as an HTTP listener and defaults to `SITE_NETWORK_INSIDE_AND_OUTSIDE` so the CE sites can proxy both internal and external traffic. If you want HTTPS or certificate automation, extend `modules/f5_http_lb/main.tf`.
