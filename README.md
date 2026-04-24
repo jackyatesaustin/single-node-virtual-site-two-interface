@@ -97,31 +97,28 @@ terraform apply
 
 ## Deployment Flow
 
-```text
-Azure CE Site 1 (SLI + SLO)
-Azure CE Site 2 (SLI + SLO)
-        |
-        v
-Known label + site labels
-        |
-        v
-XC Virtual Site
-        |
-        v
-XC Origin Pool (inside network)
-        |
-        v
-XC HTTP Load Balancer
-```
+1. Create two Azure CE sites, each with:
+   - one `SLO` outside interface for client-facing advertisement
+   - one `SLI` inside interface for private origin access
+2. Attach a known XC label and site labels to both CE sites.
+3. Build one XC `Virtual Site` that selects the labeled CE sites.
+4. Create one XC `Origin Pool` that reaches the backend over the inside network through the Virtual Site.
+5. Create one XC `HTTP Load Balancer` that advertises on the Virtual Site.
 
-## Architecture Diagram
+## Diagrams
 
-See [`docs/deployment-diagram.md`](docs/deployment-diagram.md) for an interface-level diagram that shows:
+See [`docs/deployment-diagram.md`](docs/deployment-diagram.md) for the deployment/object diagram, including:
 
 - the F5 XC objects created by this stack
 - the CE `SLO` outside interface used for load-balancer advertisement
 - the CE `SLI` inside interface used to reach the private origin
 - the Secure Mesh public IP used for control-plane connectivity
+
+See [`docs/traffic-flow.md`](docs/traffic-flow.md) for the end-to-end request traffic flow:
+
+- client to DNS to XC HTTP load balancer
+- load balancer to origin pool and Virtual Site
+- CE `SLI` path to the private origin
 
 ## Notes
 
