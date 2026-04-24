@@ -44,3 +44,29 @@ module "f5_http_lb" {
   origin_port             = var.origin_port
   advertise_network       = var.advertise_network
 }
+
+module "azure_site_load_balancer" {
+  source   = "./modules/azure_site_load_balancer"
+  for_each = local.azure_lb_site_configs
+
+  site_key                     = each.key
+  resource_group_name          = each.value.resource_group_name
+  location                     = each.value.location
+  vnet_resource_group_name     = each.value.vnet_resource_group_name
+  vnet_name                    = each.value.vnet_name
+  inside_subnet_cidr           = each.value.inside_subnet_cidr
+  outside_subnet_cidr          = each.value.outside_subnet_cidr
+  listener_port                = each.value.listener_port
+  probe_port                   = each.value.probe_port
+  public_lb_enabled            = each.value.public_lb_enabled
+  internal_lb_enabled          = each.value.internal_lb_enabled
+  public_lb_name               = each.value.public_lb_name
+  internal_lb_name             = each.value.internal_lb_name
+  public_ip_name               = each.value.public_ip_name
+  public_frontend_name         = each.value.public_frontend_name
+  internal_frontend_name       = each.value.internal_frontend_name
+  internal_frontend_private_ip = each.value.internal_frontend_private_ip
+  public_frontend_domain_name  = each.value.public_frontend_domain_name
+  outside_backend_addresses    = each.value.outside_backend_addresses
+  inside_backend_addresses     = each.value.inside_backend_addresses
+}

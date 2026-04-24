@@ -25,3 +25,17 @@ output "site_selector_label" {
     value = local.site_label_value
   }
 }
+
+output "azure_site_load_balancers" {
+  description = "Optional Azure load balancer frontends created per CE site."
+  value = {
+    for key, site in module.azure_site_load_balancer : key => {
+      public_load_balancer_id          = site.public_load_balancer_id
+      public_frontend_ip_address       = site.public_frontend_ip_address
+      internal_load_balancer_id        = site.internal_load_balancer_id
+      internal_frontend_private_ip     = site.internal_frontend_private_ip
+      inside_backend_addresses         = site.inside_backend_addresses
+      outside_backend_addresses        = site.outside_backend_addresses
+    }
+  }
+}

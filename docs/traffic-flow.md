@@ -1,6 +1,6 @@
 # Traffic flow diagram
 
-This diagram shows the request paths after the Terraform resources have been deployed. In the default configuration, the same HTTP load balancer is advertised on both the CE inside and outside networks.
+This diagram shows the request paths after the Terraform resources have been deployed. In the default configuration, the same HTTP load balancer is advertised on both the CE inside and outside networks. Optional Azure public and internal load balancers can front those CE interfaces.
 
 ```mermaid
 flowchart LR
@@ -8,6 +8,8 @@ flowchart LR
   extDns["External DNS<br/>app_domain"]
   intClient["Internal client"]
   intDns["Internal DNS<br/>app_domain or internal app record"]
+  publicLb["Optional Azure public load balancer<br/>fronts CE SLO IPs"]
+  internalLb["Optional Azure internal load balancer<br/>fronts CE SLI IPs"]
   httpLb["XC HTTP Load Balancer<br/>HTTP listener"]
   originPool["XC Origin Pool"]
   vsite["XC Virtual Site"]
@@ -28,8 +30,8 @@ flowchart LR
 
   origin["Private origin application<br/>private_ip or private_name : origin_port"]
 
-  extClient --> extDns --> httpLb
-  intClient --> intDns --> httpLb
+  extClient --> extDns --> publicLb --> httpLb
+  intClient --> intDns --> internalLb --> httpLb
   httpLb --> originPool
   originPool --> vsite
 
@@ -44,7 +46,7 @@ flowchart LR
 ## External traffic sequence
 
 1. An external client resolves `app_domain` using external DNS.
-2. The external client connects to the XC HTTP load balancer listener.
+2. The external client connects either directly to the advertised CE outside VIP or through the optional Azure public load balancer.
 3. The load balancer selects the configured XC origin pool.
 4. The origin pool targets the XC Virtual Site.
 5. The Virtual Site selects one of the labeled Azure CE sites.
@@ -55,7 +57,7 @@ flowchart LR
 ## Internal traffic sequence
 
 1. An internal client resolves the application name using internal DNS.
-2. The internal client connects to the same XC HTTP load balancer listener over the CE inside network.
+2. The internal client connects either directly to the advertised CE inside VIP or through the optional Azure internal load balancer.
 3. The load balancer selects the configured XC origin pool.
 4. The origin pool targets the XC Virtual Site.
 5. The Virtual Site selects one of the labeled Azure CE sites.
@@ -67,4 +69,5 @@ flowchart LR
 - This diagram represents request traffic, not Terraform resource creation order.
 - The repository does not deploy the origin application; it only points to the private backend defined by `origin_server_type` and `origin_server_value`.
 - Management connectivity over the Secure Mesh public IP is intentionally omitted here because it is not in the application data path.
-- Azure public or internal load balancers are optional adjuncts outside this Terraform. Use them only if your Azure network design requires fronting the CE interfaces with Azure-native VIPs.
+- Azure public and internal load balancers are optional resources in this Terraform. When enabled, the public LB backs onto the CE `SLO` addresses and the internal LB backs onto the CE `SLI` addresses.
+- Backend CE IPs are auto-discovered from Azure NICs by subnet membership when possible. If your deployment uses nonstandard addressing or multiple matching NICs, set the explicit backend IP override lists in `ce_sites`.

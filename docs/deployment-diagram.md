@@ -1,6 +1,6 @@
 # Deployment diagram
 
-This diagram shows the order in which the Terraform-managed F5 XC objects are composed, along with the interfaces present on each Azure Customer Edge (CE) site.
+This diagram shows the order in which the Terraform-managed F5 XC objects are composed, along with the interfaces present on each Azure Customer Edge (CE) site and the optional Azure frontends that can be placed in front of them.
 
 ```mermaid
 flowchart TD
@@ -10,10 +10,11 @@ flowchart TD
   step4["4. XC Virtual Site<br/>select CE sites by label"]
   step5["5. XC Origin Pool<br/>use inside network reachability"]
   step6["6. XC HTTP Load Balancer<br/>advertise on SITE_NETWORK_INSIDE_AND_OUTSIDE"]
+  step7["7. Optional Azure public/internal load balancers<br/>front SLO and SLI using discovered CE interface IPs"]
 
   step1 --> step3
   step2 --> step3
-  step3 --> step4 --> step5 --> step6
+  step3 --> step4 --> step5 --> step6 --> step7
 ```
 
 ## Interface roles
@@ -34,4 +35,5 @@ flowchart TD
 - This is a deployment/object diagram, not the live request path.
 - The application itself is not deployed by this repository; the origin is an external private IP or private DNS name supplied through `origin_server_value`.
 - The default `advertise_network` for this repo is `SITE_NETWORK_INSIDE_AND_OUTSIDE` so a single XC HTTP load balancer can accept both external and internal traffic through the same Virtual Site.
+- When enabled, the Azure load balancer resources are created per CE site and attach to CE SLO/SLI backend IPs discovered from the site's Azure NICs and subnets. You can override those backend IP lists explicitly if auto-discovery is not sufficient.
 - DNS for `app_domain` is expected to be managed outside this stack because the load balancer sets `dns_volterra_managed = false`.

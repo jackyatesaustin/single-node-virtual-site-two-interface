@@ -136,6 +136,18 @@ variable "advertise_network" {
   }
 }
 
+variable "default_create_public_load_balancer" {
+  description = "Create a public Azure load balancer per CE site by default."
+  type        = bool
+  default     = false
+}
+
+variable "default_create_internal_load_balancer" {
+  description = "Create an internal Azure load balancer per CE site by default."
+  type        = bool
+  default     = false
+}
+
 variable "ce_sites" {
   description = "Azure CE site definitions keyed by a short site identifier such as ce1 or ce2."
   type = map(object({
@@ -153,6 +165,13 @@ variable "ce_sites" {
     existing_vnet_resource_group = optional(string)
     vnet_name                    = optional(string)
     routing_mode                 = optional(string)
+    create_public_load_balancer  = optional(bool)
+    create_internal_load_balancer = optional(bool)
+    internal_frontend_private_ip = optional(string)
+    azure_lb_listener_port       = optional(number)
+    azure_lb_health_probe_port   = optional(number)
+    azure_lb_inside_backend_ips  = optional(list(string))
+    azure_lb_outside_backend_ips = optional(list(string))
   }))
 
   validation {
@@ -181,5 +200,33 @@ variable "ce_sites" {
       !coalesce(site.use_existing_vnet, false) || site.existing_vnet_name != null
     ])
     error_message = "Each CE site using an existing VNet must set existing_vnet_name."
+  }
+
+  validation {
+    condition = alltrue([
+      for site in values(var.ce_sites) :
+      !(
+        coalesce(site.create_public_load_balancer, var.default_create_public_load_balancer) ||
+        coalesce(site.create_internal_load_balancer, var.default_create_internal_load_balancer)
+      ) || coalesce(site.use_existing_vnet, false) || site.vnet_name != null
+    ])
+    error_message = "Each CE site that enables Azure load balancers must set vnet_name or use_existing_vnet with existing_vnet_name."
+  }
+
+  validation {
+    condition = alltrue([
+      for site in values(var.ce_sites) :
+      coalesce(site.azure_lb_listener_port, var.listener_port) >= 1 && coalesce(site.azure_lb_listener_port, var.listener_port) <= 65535
+    ])
+    error_message = "Each azure_lb_listener_port must be between 1 and 65535."
+  }
+
+  validation {
+    condition = alltrue([
+      for site in values(var.ce_sites) :
+      coalesce(site.azure_lb_health_probe_port, coalesce(site.azure_lb_listener_port, var.listener_port)) >= 1 &&
+      coalesce(site.azure_lb_health_probe_port, coalesce(site.azure_lb_listener_port, var.listener_port)) <= 65535
+    ])
+    error_message = "Each azure_lb_health_probe_port must be between 1 and 65535."
   }
 }

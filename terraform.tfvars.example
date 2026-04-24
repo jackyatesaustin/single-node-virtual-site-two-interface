@@ -16,6 +16,9 @@ origin_server_value = "10.10.1.10"
 origin_port         = 80
 advertise_network   = "SITE_NETWORK_INSIDE_AND_OUTSIDE"
 
+default_create_public_load_balancer   = true
+default_create_internal_load_balancer = true
+
 ce_sites = {
   ce1 = {
     azure_region        = "eastus"
@@ -30,6 +33,11 @@ ce_sites = {
     outside_subnet_cidr = "10.100.20.0/24"
     use_existing_vnet   = false
     routing_mode        = "f5_orchestrated"
+    azure_lb_listener_port     = 80
+    azure_lb_health_probe_port = 80
+    # Optional override if NIC auto-discovery in the resource group is ambiguous:
+    # azure_lb_outside_backend_ips = ["10.100.20.4"]
+    # azure_lb_inside_backend_ips  = ["10.100.10.4"]
   }
 
   ce2 = {
@@ -45,5 +53,11 @@ ce_sites = {
     outside_subnet_cidr = "10.110.20.0/24"
     use_existing_vnet   = false
     routing_mode        = "f5_orchestrated"
+    azure_lb_listener_port       = 80
+    azure_lb_health_probe_port   = 80
+    internal_frontend_private_ip = "10.110.10.20"
+    # Optional override if NIC auto-discovery in the resource group is ambiguous:
+    # azure_lb_outside_backend_ips = ["10.110.20.4"]
+    # azure_lb_inside_backend_ips  = ["10.110.10.4"]
   }
 }
