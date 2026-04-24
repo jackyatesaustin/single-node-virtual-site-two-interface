@@ -1,0 +1,38 @@
+{
+  "tenant_name": "my-tenant",
+  "namespace": "system",
+  "virtual_site": {
+    "name": "vsite-single-node-vsite",
+    "namespace": "system"
+  },
+  "applications": {
+    "ext-web": {
+      "domains": [
+        "app.example.com"
+      ],
+      "listener_port": 80,
+      "origin_server_value": "10.10.1.10",
+      "origin_port": 80,
+      "advertise_network": "SITE_NETWORK_OUTSIDE"
+    },
+    "int-api": {
+      "domains": [
+        "api.internal.example.com"
+      ],
+      "listener_port": 8080,
+      "origin_server_type": "private_name",
+      "origin_server_value": "api.service.local",
+      "origin_port": 8080,
+      "advertise_network": "SITE_NETWORK_INSIDE"
+    },
+    "shared-admin": {
+      "domains": [
+        "admin.example.com"
+      ],
+      "listener_port": 8443,
+      "origin_server_value": "10.10.2.20",
+      "origin_port": 8443,
+      "advertise_network": "SITE_NETWORK_INSIDE_AND_OUTSIDE"
+    }
+  }
+}

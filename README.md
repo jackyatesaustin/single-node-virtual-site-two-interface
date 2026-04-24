@@ -41,6 +41,13 @@ export VES_P12_PASSWORD="<p12-password>"
 ├── versions.tf
 ├── providers.tf
 ├── terraform.tfvars.example
+├── xc-api
+│   ├── README.md
+│   ├── bin
+│   │   ├── lib.sh
+│   │   └── upsert-http-lbs.sh
+│   └── examples
+│       └── applications.json
 └── modules
     ├── azure_ce_site
     │   ├── main.tf
@@ -84,6 +91,19 @@ terraform validate
 ```bash
 terraform apply
 ```
+
+## XC API automation
+
+If you want to manage only the application-layer XC objects without Terraform, see [`xc-api/README.md`](xc-api/README.md).
+
+That folder contains a Bash workflow that uses the F5 XC config APIs to create or replace:
+
+- one Origin Pool per application
+- one HTTP Load Balancer per application
+- per-application Virtual Site interface configuration for:
+  - external apps on `SITE_NETWORK_OUTSIDE`
+  - internal apps on `SITE_NETWORK_INSIDE`
+  - shared apps on `SITE_NETWORK_INSIDE_AND_OUTSIDE`
 
 ## Important Inputs
 
