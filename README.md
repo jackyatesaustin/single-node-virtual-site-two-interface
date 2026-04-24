@@ -114,6 +114,15 @@ XC Origin Pool (inside network)
 XC HTTP Load Balancer
 ```
 
+## Architecture Diagram
+
+See [`docs/deployment-diagram.md`](docs/deployment-diagram.md) for an interface-level diagram that shows:
+
+- the F5 XC objects created by this stack
+- the CE `SLO` outside interface used for load-balancer advertisement
+- the CE `SLI` inside interface used to reach the private origin
+- the Secure Mesh public IP used for control-plane connectivity
+
 ## Notes
 
 - The repo uses `volterra_cloud_site_labels` to attach a known label to each Azure VNet Site, then a `volterra_virtual_site` selector groups those sites.
