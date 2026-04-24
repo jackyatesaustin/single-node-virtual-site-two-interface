@@ -33,49 +33,31 @@ variable "virtual_site_name" {
   type        = string
 }
 
-variable "origin_pool_name" {
-  description = "Name of the Origin Pool."
-  type        = string
-}
-
-variable "http_load_balancer_name" {
-  description = "Name of the HTTP load balancer."
-  type        = string
-}
-
-variable "app_domain" {
-  description = "Domain exposed by the HTTP load balancer."
-  type        = string
-}
-
-variable "listener_port" {
-  description = "Listener port for the HTTP load balancer."
-  type        = number
-}
-
-variable "origin_server_type" {
-  description = "Origin addressing model."
-  type        = string
+variable "applications" {
+  description = "Application-specific origin pools and HTTP load balancers keyed by application identifier."
+  type = map(object({
+    domains                = list(string)
+    origin_pool_name       = string
+    http_load_balancer_name = string
+    listener_port          = number
+    origin_server_type     = string
+    origin_server_value    = string
+    origin_port            = number
+    advertise_network      = string
+  }))
 
   validation {
-    condition     = contains(["private_ip", "private_name"], var.origin_server_type)
-    error_message = "origin_server_type must be either \"private_ip\" or \"private_name\"."
+    condition = alltrue([
+      for app in values(var.applications) :
+      length(app.domains) > 0 &&
+      contains(["private_ip", "private_name"], app.origin_server_type) &&
+      contains(
+        ["SITE_NETWORK_INSIDE", "SITE_NETWORK_OUTSIDE", "SITE_NETWORK_INSIDE_AND_OUTSIDE"],
+        app.advertise_network
+      )
+    ])
+    error_message = "Each application must define at least one domain, use a supported origin_server_type, and use a supported advertise_network."
   }
-}
-
-variable "origin_server_value" {
-  description = "Origin IP or DNS name that each CE site can resolve on its inside network."
-  type        = string
-}
-
-variable "origin_port" {
-  description = "Origin port for the backend application."
-  type        = number
-}
-
-variable "advertise_network" {
-  description = "Virtual Site network where the load balancer VIP should be advertised."
-  type        = string
 }
 
 variable "origin_endpoint_selection" {

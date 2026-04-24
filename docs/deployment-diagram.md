@@ -8,8 +8,8 @@ flowchart TD
   step2["2. Azure CE Site 2<br/>single-node CE with SLI, SLO, and Secure Mesh public IP"]
   step3["3. Known label + cloud site labels<br/>tag both CE sites for membership"]
   step4["4. XC Virtual Site<br/>select CE sites by label"]
-  step5["5. XC Origin Pool<br/>use inside network reachability"]
-  step6["6. XC HTTP Load Balancer<br/>advertise on SITE_NETWORK_INSIDE_AND_OUTSIDE"]
+  step5["5. XC Origin Pools<br/>one per application"]
+  step6["6. XC HTTP Load Balancers<br/>one per application<br/>internal apps advertise on SLI<br/>external apps advertise on SLO"]
   step7["7. Optional Azure public/internal load balancers<br/>front SLO and SLI using discovered CE interface IPs"]
 
   step1 --> step3
@@ -34,6 +34,6 @@ flowchart TD
 
 - This is a deployment/object diagram, not the live request path.
 - The application itself is not deployed by this repository; the origin is an external private IP or private DNS name supplied through `origin_server_value`.
-- The default `advertise_network` for this repo is `SITE_NETWORK_INSIDE_AND_OUTSIDE` so a single XC HTTP load balancer can accept both external and internal traffic through the same Virtual Site.
+- Each application gets its own XC Origin Pool and XC HTTP Load Balancer. Set `advertise_network` per app to `SITE_NETWORK_INSIDE`, `SITE_NETWORK_OUTSIDE`, or `SITE_NETWORK_INSIDE_AND_OUTSIDE`.
 - When enabled, the Azure load balancer resources are created per CE site and attach to CE SLO/SLI backend IPs discovered from the site's Azure NICs and subnets. You can override those backend IP lists explicitly if auto-discovery is not sufficient.
 - DNS for `app_domain` is expected to be managed outside this stack because the load balancer sets `dns_volterra_managed = false`.

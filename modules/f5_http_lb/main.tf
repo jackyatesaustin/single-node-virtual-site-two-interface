@@ -49,16 +49,18 @@ resource "volterra_virtual_site" "this" {
 }
 
 resource "volterra_origin_pool" "this" {
-  name                   = var.origin_pool_name
+  for_each = var.applications
+
+  name                   = each.value.origin_pool_name
   namespace              = var.namespace
-  endpoint_selection     = var.origin_endpoint_selection
-  loadbalancer_algorithm = var.origin_loadbalancer_algorithm
+  endpoint_selection     = each.value.origin_endpoint_selection
+  loadbalancer_algorithm = each.value.origin_loadbalancer_algorithm
   no_tls                 = true
-  port                   = tostring(var.origin_port)
+  port                   = tostring(each.value.origin_port)
 
   origin_servers {
     dynamic "private_ip" {
-      for_each = var.origin_server_type == "private_ip" ? [var.origin_server_value] : []
+      for_each = each.value.origin_server_type == "private_ip" ? [each.value.origin_server_value] : []
 
       content {
         ip             = private_ip.value
@@ -75,7 +77,7 @@ resource "volterra_origin_pool" "this" {
     }
 
     dynamic "private_name" {
-      for_each = var.origin_server_type == "private_name" ? [var.origin_server_value] : []
+      for_each = each.value.origin_server_type == "private_name" ? [each.value.origin_server_value] : []
 
       content {
         dns_name         = private_name.value
@@ -95,15 +97,17 @@ resource "volterra_origin_pool" "this" {
 }
 
 resource "volterra_http_loadbalancer" "this" {
+  for_each = var.applications
+
   depends_on = [volterra_origin_pool.this]
 
-  name      = var.http_load_balancer_name
+  name      = each.value.http_load_balancer_name
   namespace = var.namespace
 
   advertise_custom {
     advertise_where {
       virtual_site {
-        network = var.advertise_network
+        network = each.value.advertise_network
 
         virtual_site {
           name      = volterra_virtual_site.this.name
@@ -118,12 +122,12 @@ resource "volterra_http_loadbalancer" "this" {
   disable_api_discovery  = true
   disable_api_testing    = true
   no_challenge           = true
-  domains                = [var.app_domain]
+  domains                = each.value.domains
   source_ip_stickiness   = true
 
   http {
     dns_volterra_managed = false
-    port                 = tostring(var.listener_port)
+    port                 = tostring(each.value.listener_port)
   }
 
   disable_malicious_user_detection = true
@@ -138,7 +142,7 @@ resource "volterra_http_loadbalancer" "this" {
 
   default_route_pools {
     pool {
-      name      = volterra_origin_pool.this.name
+      name      = volterra_origin_pool.this[each.key].name
       namespace = var.namespace
       tenant    = var.tenant_name
     }

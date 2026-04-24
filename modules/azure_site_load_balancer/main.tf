@@ -57,6 +57,9 @@ locals {
 
   inside_backend_addresses  = length(var.internal_backend_ips) > 0 ? sort(distinct(var.internal_backend_ips)) : sort(local.discovered_inside_private_ips)
   outside_backend_addresses = length(var.public_backend_ips) > 0 ? sort(distinct(var.public_backend_ips)) : sort(local.discovered_outside_private_ips)
+
+  public_listener_ports = distinct(sort(var.public_listener_ports))
+  internal_listener_ports = distinct(sort(var.internal_listener_ports))
 }
 
 resource "azurerm_public_ip" "public" {
@@ -139,43 +142,51 @@ resource "azurerm_lb_backend_address_pool_address" "internal" {
 }
 
 resource "azurerm_lb_probe" "public" {
-  count = var.public_lb_enabled ? 1 : 0
+  for_each = var.public_lb_enabled ? {
+    for port in local.public_listener_ports : tostring(port) => port
+  } : {}
 
-  name            = "${var.site_key}-public-probe"
+  name            = "${var.site_key}-public-probe-${each.key}"
   loadbalancer_id = azurerm_lb.public[0].id
-  port            = var.probe_port
+  port            = var.public_probe_port
 }
 
 resource "azurerm_lb_probe" "internal" {
-  count = var.internal_lb_enabled ? 1 : 0
+  for_each = var.internal_lb_enabled ? {
+    for port in local.internal_listener_ports : tostring(port) => port
+  } : {}
 
-  name            = "${var.site_key}-internal-probe"
+  name            = "${var.site_key}-internal-probe-${each.key}"
   loadbalancer_id = azurerm_lb.internal[0].id
-  port            = var.probe_port
+  port            = var.internal_probe_port
 }
 
 resource "azurerm_lb_rule" "public" {
-  count = var.public_lb_enabled ? 1 : 0
+  for_each = var.public_lb_enabled ? {
+    for port in local.public_listener_ports : tostring(port) => port
+  } : {}
 
-  name                           = "${var.site_key}-public-${var.listener_port}"
+  name                           = "${var.site_key}-public-${each.key}"
   loadbalancer_id                = azurerm_lb.public[0].id
   protocol                       = "Tcp"
-  frontend_port                  = var.listener_port
-  backend_port                   = var.listener_port
+  frontend_port                  = each.value
+  backend_port                   = each.value
   frontend_ip_configuration_name = var.public_frontend_name
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.public[0].id]
-  probe_id                       = azurerm_lb_probe.public[0].id
+  probe_id                       = azurerm_lb_probe.public[each.key].id
 }
 
 resource "azurerm_lb_rule" "internal" {
-  count = var.internal_lb_enabled ? 1 : 0
+  for_each = var.internal_lb_enabled ? {
+    for port in local.internal_listener_ports : tostring(port) => port
+  } : {}
 
-  name                           = "${var.site_key}-internal-${var.listener_port}"
+  name                           = "${var.site_key}-internal-${each.key}"
   loadbalancer_id                = azurerm_lb.internal[0].id
   protocol                       = "Tcp"
-  frontend_port                  = var.listener_port
-  backend_port                   = var.listener_port
+  frontend_port                  = each.value
+  backend_port                   = each.value
   frontend_ip_configuration_name = var.internal_frontend_name
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.internal[0].id]
-  probe_id                       = azurerm_lb_probe.internal[0].id
+  probe_id                       = azurerm_lb_probe.internal[each.key].id
 }

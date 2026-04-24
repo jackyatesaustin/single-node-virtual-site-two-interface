@@ -5,8 +5,9 @@ This Terraform repo creates a two-site F5 XC Azure Customer Edge deployment for 
 - two single-node Azure CE sites
 - `SLI` and `SLO` on each site via `ingress_egress_gw`
 - one XC `Virtual Site` that groups both CE sites
-- one XC `Origin Pool` that targets the Virtual Site over the inside network
-- one XC `HTTP Load Balancer` advertised on the Virtual Site for both inside and outside networks
+- one XC `Virtual Site` shared by all applications in the deployment
+- one XC `Origin Pool` per application that targets the Virtual Site over the inside network
+- one XC `HTTP Load Balancer` per application, with each app advertised on inside, outside, or both networks
 - optional Azure public and internal load balancers per site that front the CE `SLO` and `SLI` interfaces
 
 ## Scope
@@ -68,9 +69,7 @@ cp terraform.tfvars.example terraform.tfvars
 - `tenant_name`
 - `azure_credential_name`
 - `ssh_public_key`
-- `app_domain`
-- `origin_server_type`
-- `origin_server_value`
+- `applications`
 - each entry in `ce_sites`
 
 3. Initialize and validate:
@@ -91,18 +90,33 @@ terraform apply
 - `ce_sites`
   - map of CE site definitions keyed by a short identifier such as `ce1` and `ce2`
   - each site creates a single-node Azure CE in two-interface mode
-- `origin_server_type`
-  - `private_ip` if the backend is reachable via the same RFC1918 IP at each member site
-  - `private_name` if the backend is reachable via a site-local DNS name at each member site
+- `applications`
+  - map of application definitions keyed by a short app identifier such as `external`, `internal`, or `api`
+  - each application creates:
+    - one XC `Origin Pool`
+    - one XC `HTTP Load Balancer`
+  - each application sets:
+    - `domain`
+    - `listener_port`
+    - `origin_server_type`
+    - `origin_server_value`
+    - `origin_port`
+    - `advertise_network`
 - `advertise_network`
-  - where the HTTP LB VIP is advertised on the Virtual Site
-  - defaults to `SITE_NETWORK_INSIDE_AND_OUTSIDE` so the same XC application can proxy both internal and external traffic flows
+  - per-application value that decides which CE interface the app listens on
+  - `SITE_NETWORK_OUTSIDE` -> external app on `SLO`
+  - `SITE_NETWORK_INSIDE` -> internal app on `SLI`
+  - `SITE_NETWORK_INSIDE_AND_OUTSIDE` -> app exposed on both interfaces
 - `default_create_public_load_balancer` / `default_create_internal_load_balancer`
   - optional defaults that create Azure load balancers per CE site
-  - public LBs front CE `SLO` IPs and internal LBs front CE `SLI` IPs
+  - public LBs front CE `SLO` IPs and create rules for externally advertised application ports
+  - internal LBs front CE `SLI` IPs and create rules for internally advertised application ports
 - `ce_sites[*].azure_lb_outside_backend_ips` / `ce_sites[*].azure_lb_inside_backend_ips`
   - optional backend IP overrides for Azure load balancers
   - leave unset to auto-discover CE NIC IPs by matching NIC subnet attachments to the configured `outside_subnet_cidr` and `inside_subnet_cidr`
+- `ce_sites[*].azure_lb_public_listener_ports` / `ce_sites[*].azure_lb_internal_listener_ports`
+  - optional per-site overrides for which listener ports the Azure public/internal load balancers expose
+  - leave unset to derive them automatically from the `applications` map
 
 ## Deployment Flow
 
@@ -111,11 +125,14 @@ terraform apply
    - one `SLI` inside interface for private origin access
 2. Attach a known XC label and site labels to both CE sites.
 3. Build one XC `Virtual Site` that selects the labeled CE sites.
-4. Create one XC `Origin Pool` that reaches the backend over the inside network through the Virtual Site.
-5. Create one XC `HTTP Load Balancer` that advertises on both the inside and outside networks of the Virtual Site.
+4. Create one XC `Origin Pool` per application that reaches that app's backend over the inside network through the Virtual Site.
+5. Create one XC `HTTP Load Balancer` per application:
+   - external apps advertise on `SITE_NETWORK_OUTSIDE`
+   - internal apps advertise on `SITE_NETWORK_INSIDE`
+   - shared apps advertise on `SITE_NETWORK_INSIDE_AND_OUTSIDE`
 6. Optionally create Azure public and internal load balancers in each site resource group:
-   - the public LB fronts CE `SLO` backend IPs
-   - the internal LB fronts CE `SLI` backend IPs
+   - the public LB fronts CE `SLO` backend IPs and exposes the union of external app ports
+   - the internal LB fronts CE `SLI` backend IPs and exposes the union of internal app ports
 
 ## Diagrams
 
@@ -130,7 +147,7 @@ See [`docs/traffic-flow.md`](docs/traffic-flow.md) for the end-to-end request tr
 
 - external client to public DNS and the CE `SLO` path
 - internal client to internal DNS and the CE `SLI` path
-- load balancer to origin pool and Virtual Site for both flows
+- application-specific load balancers and origin pools over the shared Virtual Site
 
 ## Azure Load Balancer Behavior
 
@@ -139,9 +156,11 @@ When enabled, the repo creates Azure-native frontends per CE site:
 - **public Azure load balancer**
   - frontend: Standard public IP
   - backend pool: CE `SLO` interface IPs
+  - rules: one TCP rule per application that advertises on `SITE_NETWORK_OUTSIDE` or `SITE_NETWORK_INSIDE_AND_OUTSIDE`
 - **internal Azure load balancer**
   - frontend: private IP on the `SLI` subnet
   - backend pool: CE `SLI` interface IPs
+  - rules: one TCP rule per application that advertises on `SITE_NETWORK_INSIDE` or `SITE_NETWORK_INSIDE_AND_OUTSIDE`
 
 Backend discovery works like this:
 
@@ -160,6 +179,6 @@ to pin the exact backend IPs for the internal and public Azure load balancers.
 ## Notes
 
 - The repo uses `volterra_cloud_site_labels` to attach a known label to each Azure VNet Site, then a `volterra_virtual_site` selector groups those sites.
-- The default origin-pool model assumes the same application IP or DNS name exists behind each CE site and is reachable via `SLI`.
-- The HTTP LB is configured as an HTTP listener and defaults to `SITE_NETWORK_INSIDE_AND_OUTSIDE` so the CE sites can proxy both internal and external traffic. If you want HTTPS or certificate automation, extend `modules/f5_http_lb/main.tf`.
+- Each application origin pool assumes the same application IP or DNS name exists behind each CE site and is reachable via `SLI`.
+- HTTP load balancers are configured as HTTP listeners. If you want HTTPS or certificate automation, extend `modules/f5_http_lb/main.tf`.
 - Azure DNS records are still not created by this repo. Public and internal DNS remain external to this Terraform.

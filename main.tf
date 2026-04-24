@@ -35,14 +35,7 @@ module "f5_http_lb" {
   label_value             = local.site_label_value
   site_names              = { for key, site in module.azure_ce_site : key => site.site_name }
   virtual_site_name       = local.virtual_site_name
-  origin_pool_name        = local.origin_pool_name
-  http_load_balancer_name = local.http_load_balancer_name
-  app_domain              = var.app_domain
-  listener_port           = var.listener_port
-  origin_server_type      = var.origin_server_type
-  origin_server_value     = var.origin_server_value
-  origin_port             = var.origin_port
-  advertise_network       = var.advertise_network
+  applications            = local.applications
 }
 
 module "azure_site_load_balancer" {
@@ -56,8 +49,10 @@ module "azure_site_load_balancer" {
   vnet_name                    = each.value.vnet_name
   inside_subnet_cidr           = each.value.inside_subnet_cidr
   outside_subnet_cidr          = each.value.outside_subnet_cidr
-  listener_port                = each.value.listener_port
-  probe_port                   = each.value.probe_port
+  public_listener_ports        = each.value.public_listener_ports
+  internal_listener_ports      = each.value.internal_listener_ports
+  public_probe_port            = each.value.public_probe_port
+  internal_probe_port          = each.value.internal_probe_port
   public_lb_enabled            = each.value.public_lb_enabled
   internal_lb_enabled          = each.value.internal_lb_enabled
   public_lb_name               = each.value.public_lb_name
@@ -67,6 +62,6 @@ module "azure_site_load_balancer" {
   internal_frontend_name       = each.value.internal_frontend_name
   internal_frontend_private_ip = each.value.internal_frontend_private_ip
   public_frontend_domain_name  = each.value.public_frontend_domain_name
-  outside_backend_addresses    = each.value.outside_backend_addresses
-  inside_backend_addresses     = each.value.inside_backend_addresses
+  public_backend_ips           = each.value.outside_backend_addresses
+  internal_backend_ips         = each.value.inside_backend_addresses
 }

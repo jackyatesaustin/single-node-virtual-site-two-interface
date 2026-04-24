@@ -9,12 +9,34 @@ ssh_public_key             = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCexample"
 site_label_namespace = "shared"
 site_label_key       = "vsite-group"
 
-app_domain          = "app.example.com"
-listener_port       = 80
-origin_server_type  = "private_ip"
-origin_server_value = "10.10.1.10"
-origin_port         = 80
-advertise_network   = "SITE_NETWORK_INSIDE_AND_OUTSIDE"
+applications = {
+  ext-web = {
+    domains             = ["app.example.com"]
+    listener_port       = 80
+    origin_server_type  = "private_ip"
+    origin_server_value = "10.10.1.10"
+    origin_port         = 80
+    advertise_network   = "SITE_NETWORK_OUTSIDE"
+  }
+
+  int-api = {
+    domains             = ["api.internal.example.com"]
+    listener_port       = 8080
+    origin_server_type  = "private_name"
+    origin_server_value = "api.service.local"
+    origin_port         = 8080
+    advertise_network   = "SITE_NETWORK_INSIDE"
+  }
+
+  shared-admin = {
+    domains             = ["admin.example.com"]
+    listener_port       = 8443
+    origin_server_type  = "private_ip"
+    origin_server_value = "10.10.2.20"
+    origin_port         = 8443
+    advertise_network   = "SITE_NETWORK_INSIDE_AND_OUTSIDE"
+  }
+}
 
 default_create_public_load_balancer   = true
 default_create_internal_load_balancer = true
@@ -33,8 +55,11 @@ ce_sites = {
     outside_subnet_cidr = "10.100.20.0/24"
     use_existing_vnet   = false
     routing_mode        = "f5_orchestrated"
-    azure_lb_listener_port     = 80
     azure_lb_health_probe_port = 80
+    # Optional override of ports exposed on the Azure public/internal LBs.
+    # By default these are derived from the applications map:
+    # azure_lb_public_listener_ports   = [80, 8443]
+    # azure_lb_internal_listener_ports = [8080, 8443]
     # Optional override if NIC auto-discovery in the resource group is ambiguous:
     # azure_lb_outside_backend_ips = ["10.100.20.4"]
     # azure_lb_inside_backend_ips  = ["10.100.10.4"]
@@ -53,9 +78,12 @@ ce_sites = {
     outside_subnet_cidr = "10.110.20.0/24"
     use_existing_vnet   = false
     routing_mode        = "f5_orchestrated"
-    azure_lb_listener_port       = 80
     azure_lb_health_probe_port   = 80
     internal_frontend_private_ip = "10.110.10.20"
+    # Optional override of ports exposed on the Azure public/internal LBs.
+    # By default these are derived from the applications map:
+    # azure_lb_public_listener_ports   = [80, 8443]
+    # azure_lb_internal_listener_ports = [8080, 8443]
     # Optional override if NIC auto-discovery in the resource group is ambiguous:
     # azure_lb_outside_backend_ips = ["10.110.20.4"]
     # azure_lb_inside_backend_ips  = ["10.110.10.4"]

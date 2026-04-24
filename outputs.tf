@@ -8,14 +8,14 @@ output "virtual_site_name" {
   value       = module.f5_http_lb.virtual_site_name
 }
 
-output "origin_pool_name" {
-  description = "Origin Pool attached to the Virtual Site."
-  value       = module.f5_http_lb.origin_pool_name
+output "origin_pool_names" {
+  description = "Origin Pools attached to the Virtual Site, keyed by application."
+  value       = module.f5_http_lb.origin_pool_names
 }
 
-output "http_load_balancer_name" {
-  description = "HTTP load balancer advertised on the Virtual Site."
-  value       = module.f5_http_lb.http_load_balancer_name
+output "http_load_balancer_names" {
+  description = "HTTP load balancers advertised on the Virtual Site, keyed by application."
+  value       = module.f5_http_lb.http_load_balancer_names
 }
 
 output "site_selector_label" {

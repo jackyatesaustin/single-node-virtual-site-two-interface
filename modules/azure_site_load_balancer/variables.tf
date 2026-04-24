@@ -38,13 +38,23 @@ variable "outside_subnet_cidr" {
   type        = string
 }
 
-variable "listener_port" {
-  description = "Application listener port exposed through the Azure load balancers."
+variable "public_listener_ports" {
+  description = "External application listener ports exposed through the public Azure load balancer."
+  type        = list(number)
+}
+
+variable "internal_listener_ports" {
+  description = "Internal application listener ports exposed through the internal Azure load balancer."
+  type        = list(number)
+}
+
+variable "public_probe_port" {
+  description = "TCP probe port used by the public Azure load balancer health checks."
   type        = number
 }
 
-variable "probe_port" {
-  description = "TCP probe port used by Azure load balancer health checks."
+variable "internal_probe_port" {
+  description = "TCP probe port used by the internal Azure load balancer health checks."
   type        = number
 }
 
@@ -99,19 +109,4 @@ variable "internal_backend_ips" {
   description = "Optional explicit CE SLI backend IPs. Leave empty to auto-discover from the inside subnet."
   type        = list(string)
   default     = []
-}
-
-variable "backend_pool_name" {
-  description = "Backend pool name shared by the site load balancers."
-  type        = string
-}
-
-variable "probe_name" {
-  description = "Health probe name shared by the site load balancers."
-  type        = string
-}
-
-variable "rule_name" {
-  description = "Load balancing rule name shared by the site load balancers."
-  type        = string
 }

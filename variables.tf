@@ -76,12 +76,13 @@ variable "site_label_key" {
 }
 
 variable "app_domain" {
-  description = "Domain exposed by the XC HTTP load balancer."
+  description = "Legacy single-application domain exposed by the XC HTTP load balancer."
   type        = string
+  default     = null
 }
 
 variable "listener_port" {
-  description = "Listener port exposed by the HTTP load balancer."
+  description = "Legacy default listener port exposed by the HTTP load balancer."
   type        = number
   default     = 80
 
@@ -92,7 +93,7 @@ variable "listener_port" {
 }
 
 variable "origin_server_type" {
-  description = "Origin addressing model. Use private_ip for a site-local RFC1918 IP or private_name for a site-local DNS name."
+  description = "Legacy default origin addressing model. Use private_ip for a site-local RFC1918 IP or private_name for a site-local DNS name."
   type        = string
   default     = "private_ip"
 
@@ -103,12 +104,13 @@ variable "origin_server_type" {
 }
 
 variable "origin_server_value" {
-  description = "Origin IP or DNS name that is reachable via the Virtual Site inside network."
+  description = "Legacy default origin IP or DNS name that is reachable via the Virtual Site inside network."
   type        = string
+  default     = null
 }
 
 variable "origin_port" {
-  description = "Port exposed by the origin application behind each CE site."
+  description = "Legacy default origin port exposed by the application behind each CE site."
   type        = number
   default     = 80
 
@@ -119,7 +121,7 @@ variable "origin_port" {
 }
 
 variable "advertise_network" {
-  description = "Where the HTTP load balancer VIP is advertised on the Virtual Site. Defaults to both inside and outside networks so the CE can proxy internal and external client traffic."
+  description = "Legacy default advertisement network for single-app mode."
   type        = string
   default     = "SITE_NETWORK_INSIDE_AND_OUTSIDE"
 
@@ -133,6 +135,61 @@ variable "advertise_network" {
       var.advertise_network
     )
     error_message = "advertise_network must be SITE_NETWORK_INSIDE, SITE_NETWORK_OUTSIDE, or SITE_NETWORK_INSIDE_AND_OUTSIDE."
+  }
+}
+
+variable "applications" {
+  description = "Application-specific XC HTTP load balancers and origin pools. Each app can advertise on inside, outside, or both networks."
+  type = map(object({
+    domains             = list(string)
+    listener_port       = optional(number)
+    origin_server_type  = optional(string)
+    origin_server_value = string
+    origin_port         = optional(number)
+    advertise_network   = optional(string)
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for app in values(var.applications) : contains(
+        ["private_ip", "private_name"],
+        coalesce(app.origin_server_type, var.origin_server_type)
+      )
+    ])
+    error_message = "Each application origin_server_type must be private_ip or private_name."
+  }
+
+  validation {
+    condition = alltrue([
+      for app in values(var.applications) : contains(
+        [
+          "SITE_NETWORK_INSIDE",
+          "SITE_NETWORK_OUTSIDE",
+          "SITE_NETWORK_INSIDE_AND_OUTSIDE",
+        ],
+        coalesce(app.advertise_network, var.advertise_network)
+      )
+    ])
+    error_message = "Each application advertise_network must be SITE_NETWORK_INSIDE, SITE_NETWORK_OUTSIDE, or SITE_NETWORK_INSIDE_AND_OUTSIDE."
+  }
+
+  validation {
+    condition = alltrue([
+      for app in values(var.applications) :
+      length(app.domains) > 0 &&
+      alltrue([for domain in app.domains : length(trimspace(domain)) > 0]) &&
+      coalesce(app.listener_port, var.listener_port) >= 1 && coalesce(app.listener_port, var.listener_port) <= 65535
+    ])
+    error_message = "Each application must define at least one non-empty domain and listener_port must be between 1 and 65535."
+  }
+
+  validation {
+    condition = alltrue([
+      for app in values(var.applications) :
+      coalesce(app.origin_port, var.origin_port) >= 1 && coalesce(app.origin_port, var.origin_port) <= 65535
+    ])
+    error_message = "Each application origin_port must be between 1 and 65535."
   }
 }
 
@@ -168,8 +225,10 @@ variable "ce_sites" {
     create_public_load_balancer  = optional(bool)
     create_internal_load_balancer = optional(bool)
     internal_frontend_private_ip = optional(string)
-    azure_lb_listener_port       = optional(number)
-    azure_lb_health_probe_port   = optional(number)
+    azure_lb_public_listener_ports = optional(list(number))
+    azure_lb_internal_listener_ports = optional(list(number))
+    azure_lb_public_probe_port   = optional(number)
+    azure_lb_internal_probe_port = optional(number)
     azure_lb_inside_backend_ips  = optional(list(string))
     azure_lb_outside_backend_ips = optional(list(string))
   }))
@@ -216,17 +275,40 @@ variable "ce_sites" {
   validation {
     condition = alltrue([
       for site in values(var.ce_sites) :
-      coalesce(site.azure_lb_listener_port, var.listener_port) >= 1 && coalesce(site.azure_lb_listener_port, var.listener_port) <= 65535
+      alltrue([
+        for port in coalesce(site.azure_lb_public_listener_ports, []) :
+        port >= 1 && port <= 65535
+      ])
     ])
-    error_message = "Each azure_lb_listener_port must be between 1 and 65535."
+    error_message = "Each azure_lb_public_listener_ports entry must be between 1 and 65535."
   }
 
   validation {
     condition = alltrue([
       for site in values(var.ce_sites) :
-      coalesce(site.azure_lb_health_probe_port, coalesce(site.azure_lb_listener_port, var.listener_port)) >= 1 &&
-      coalesce(site.azure_lb_health_probe_port, coalesce(site.azure_lb_listener_port, var.listener_port)) <= 65535
+      alltrue([
+        for port in coalesce(site.azure_lb_internal_listener_ports, []) :
+        port >= 1 && port <= 65535
+      ])
     ])
-    error_message = "Each azure_lb_health_probe_port must be between 1 and 65535."
+    error_message = "Each azure_lb_internal_listener_ports entry must be between 1 and 65535."
+  }
+
+  validation {
+    condition = alltrue([
+      for site in values(var.ce_sites) :
+      coalesce(site.azure_lb_public_probe_port, var.listener_port) >= 1 &&
+      coalesce(site.azure_lb_public_probe_port, var.listener_port) <= 65535
+    ])
+    error_message = "Each azure_lb_public_probe_port must be between 1 and 65535."
+  }
+
+  validation {
+    condition = alltrue([
+      for site in values(var.ce_sites) :
+      coalesce(site.azure_lb_internal_probe_port, var.listener_port) >= 1 &&
+      coalesce(site.azure_lb_internal_probe_port, var.listener_port) <= 65535
+    ])
+    error_message = "Each azure_lb_internal_probe_port must be between 1 and 65535."
   }
 }
